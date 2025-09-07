@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { formatDistance } from 'date-fns'
+import Image from 'next/image'
 import { getCache, setCache } from '@/lib/cache'
 import {
   FiFile,
@@ -91,9 +92,11 @@ export default function FileList() {
           {/* Thumbnail/Icon Container */}
           <div className="aspect-square relative bg-gray-50 dark:bg-gray-900 flex items-center justify-center p-4">
             {file.type.startsWith('image/') ? (
-              <img
+              <Image
                 src={`/api/files/${file.id}/download`}
                 alt={file.name}
+                width={200}
+                height={200}
                 className="object-cover w-full h-full rounded"
                 onError={(e) => {
                   // Fallback to icon if image fails to load

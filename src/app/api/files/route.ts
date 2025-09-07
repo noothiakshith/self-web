@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import prisma from '@/lib/prisma'
 import { writeFile } from 'fs/promises'
 import { join } from 'path'
-import * as bcrypt from 'bcryptjs'
+
 
 export async function GET() {
   try {
@@ -10,7 +10,8 @@ export async function GET() {
       orderBy: { uploadDate: 'desc' }
     })
     return NextResponse.json(files)
-  } catch (error) {
+  } catch (err) {
+    console.error('Error fetching files:', err);
     return NextResponse.json(
       { message: 'Error fetching files' },
       { status: 500 }
@@ -49,7 +50,8 @@ export async function POST(request: NextRequest) {
     })
 
     return NextResponse.json(savedFile)
-  } catch (error) {
+  } catch (err) {
+    console.error('Error uploading file:', err);
     return NextResponse.json(
       { message: 'Error uploading file' },
       { status: 500 }

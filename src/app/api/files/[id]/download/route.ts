@@ -5,11 +5,11 @@ import { join } from 'path'
 
 export async function GET(
   request: NextRequest,
-  context: { params: { id: string } }
+  { params }: { params: { id: string } }
 ) {
+  const { id } = params
+
   try {
-    const { id } = context.params;
-    
     const file = await prisma.file.findUnique({
       where: { id }
     })
@@ -28,15 +28,32 @@ export async function GET(
     })
 
     const filePath = join(process.cwd(), file.path)
-    const stream = createReadStream(filePath)
 
-    return new NextResponse(stream as any, {
+    const arrayBuffer = await new Promise<ArrayBuffer>((resolve, reject) => {
+      const chunks: Buffer[] = []
+      const stream = createReadStream(filePath)
+
+      stream.on('data', (chunk) => chunks.push(Buffer.from(chunk)))
+      stream.on('error', (error) => reject(error))
+      stream.on('end', () => {
+        const buffer = Buffer.concat(chunks)
+        resolve(
+          buffer.buffer.slice(
+            buffer.byteOffset,
+            buffer.byteOffset + buffer.byteLength
+          )
+        )
+      })
+    })
+
+    return new NextResponse(arrayBuffer, {
       headers: {
         'Content-Disposition': `attachment; filename="${file.name}"`,
-        'Content-Type': file.type
-      }
+        'Content-Type': file.type,
+      },
     })
-  } catch (error) {
+  } catch (err) {
+    console.error('Error downloading file:', err)
     return NextResponse.json(
       { message: 'Error downloading file' },
       { status: 500 }
