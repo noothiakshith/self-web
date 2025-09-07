@@ -12,7 +12,7 @@ model File {
   name        String
   size        Int
   type        String
-  path        String
+  content     Bytes    // Store file content directly in the database
   uploadDate  DateTime @default(now())
   downloads   Int      @default(0)
 }

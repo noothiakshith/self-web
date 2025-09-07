@@ -1,7 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
 import prisma from '@/lib/prisma'
-import { createReadStream } from 'fs'
-import { join } from 'path'
 
 export async function GET(
   request: NextRequest,
@@ -27,26 +25,11 @@ export async function GET(
       data: { downloads: { increment: 1 } }
     })
 
-    const filePath = join(process.cwd(), file.path)
+    // Get the content from the database and convert to Uint8Array
+    const buffer = file.content as Buffer
+    const uint8Array = new Uint8Array(buffer)
 
-    const arrayBuffer = await new Promise<ArrayBuffer>((resolve, reject) => {
-      const chunks: Buffer[] = []
-      const stream = createReadStream(filePath)
-
-      stream.on('data', (chunk) => chunks.push(Buffer.from(chunk)))
-      stream.on('error', (error) => reject(error))
-      stream.on('end', () => {
-        const buffer = Buffer.concat(chunks)
-        resolve(
-          buffer.buffer.slice(
-            buffer.byteOffset,
-            buffer.byteOffset + buffer.byteLength
-          )
-        )
-      })
-    })
-
-    return new NextResponse(arrayBuffer, {
+    return new NextResponse(uint8Array, {
       headers: {
         'Content-Disposition': `attachment; filename="${file.name}"`,
         'Content-Type': file.type,

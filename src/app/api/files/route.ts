@@ -1,14 +1,18 @@
 import { NextRequest, NextResponse } from 'next/server'
 import prisma from '@/lib/prisma'
-import { writeFile, mkdir, unlink } from 'fs/promises'
-import { join } from 'path'
-import { existsSync } from 'fs'
-
 
 export async function GET() {
   try {
     const files = await prisma.file.findMany({
-      orderBy: { uploadDate: 'desc' }
+      orderBy: { uploadDate: 'desc' },
+      select: {
+        id: true,
+        name: true,
+        size: true,
+        type: true,
+        uploadDate: true,
+        downloads: true
+      }
     })
     return NextResponse.json(files)
   } catch (err) {
@@ -64,17 +68,6 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Create uploads directory if it doesn't exist
-    const uploadsDir = join(process.cwd(), 'uploads');
-    if (!existsSync(uploadsDir)) {
-      await mkdir(uploadsDir, { recursive: true });
-    }
-
-    // Generate unique filename to prevent overwrites
-    const timestamp = Date.now();
-    const uniqueFilename = `${timestamp}-${file.name}`;
-    const filePath = join(uploadsDir, uniqueFilename);
-
     // Get file buffer
     const buffer = Buffer.from(await file.arrayBuffer());
 
@@ -87,40 +80,24 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Write file to disk
-    try {
-      await writeFile(filePath, buffer);
-    } catch (err) {
-      console.error('Error writing file:', err);
-      return NextResponse.json(
-        { message: 'Error saving file to disk' },
-        { status: 500 }
-      );
-    }
-
-    // Save file metadata to database
+    // Save file to database
     try {
       const savedFile = await prisma.file.create({
         data: {
           name: file.name,
           size: buffer.length,
           type: file.type || 'application/octet-stream',
-          path: join('uploads', uniqueFilename)
+          content: buffer // Store file content in the database
         }
       });
 
-      return NextResponse.json(savedFile);
+      // Don't send the content field back in the response
+      const { content, ...fileWithoutContent } = savedFile;
+      return NextResponse.json(fileWithoutContent);
     } catch (err) {
-      // If database save fails, try to clean up the uploaded file
-      try {
-        await unlink(filePath);
-      } catch (cleanupErr) {
-        console.error('Failed to cleanup file after database error:', cleanupErr);
-      }
-
       console.error('Error saving to database:', err);
       return NextResponse.json(
-        { message: 'Error saving file metadata to database' },
+        { message: 'Error saving file to database' },
         { status: 500 }
       );
     }
