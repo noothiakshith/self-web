@@ -1,0 +1,23 @@
+datasource db {
+  provider = "postgresql"
+  url      = "postgresql://neondb_owner:npg_ENdQvJ38MHju@ep-empty-dew-adcjtd3l-pooler.c-2.us-east-1.aws.neon.tech/neondb?sslmode=require&channel_binding=require"
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+model File {
+  id          String   @id @default(uuid())
+  name        String
+  size        Int
+  type        String
+  path        String
+  uploadDate  DateTime @default(now())
+  downloads   Int      @default(0)
+}
+
+model Settings {
+  id       String @id @default("upload-settings")
+  password String
+}
