@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import prisma from '@/lib/prisma'
-import { writeFile, mkdir } from 'fs/promises'
+import { writeFile, mkdir, unlink } from 'fs/promises'
 import { join } from 'path'
 import { existsSync } from 'fs'
 
@@ -113,8 +113,7 @@ export async function POST(request: NextRequest) {
     } catch (err) {
       // If database save fails, try to clean up the uploaded file
       try {
-        const fs = require('fs');
-        fs.unlinkSync(filePath);
+        await unlink(filePath);
       } catch (cleanupErr) {
         console.error('Failed to cleanup file after database error:', cleanupErr);
       }
